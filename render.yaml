@@ -2,7 +2,7 @@ services:
   - type: web
     name: smart-manufacturing-system-api
     runtime: python
-    plan: free
+   
     rootDir: backend
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --no-input
     startCommand: python manage.py migrate && gunicorn core.wsgi:application --bind 0.0.0.0:$PORT
