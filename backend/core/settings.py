@@ -27,10 +27,24 @@ SECRET_KEY = os.environ.get(
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'true').lower() == 'true'
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]']
-CORS_ALLOW_ALL_ORIGINS = True
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get(
+        'ALLOWED_HOSTS',
+        'localhost,127.0.0.1,[::1]',
+    ).split(',')
+    if host.strip()
+]
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get(
+        'CORS_ALLOWED_ORIGINS',
+        'http://localhost:5173,http://127.0.0.1:5173',
+    ).split(',')
+    if origin.strip()
+]
 
 
 # Application definition
@@ -52,6 +66,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -91,6 +106,14 @@ DATABASES = {
     }
 }
 
+if os.environ.get('DATABASE_URL'):
+    import dj_database_url
+
+    DATABASES['default'] = dj_database_url.config(
+        conn_max_age=600,
+        ssl_require=not DEBUG,
+    )
+
 
 # Password validation
 # https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
@@ -126,7 +149,20 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
 
 
 # Email
